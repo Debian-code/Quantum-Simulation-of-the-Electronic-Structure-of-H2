@@ -1,0 +1,7 @@
+distance_A,ansatz,mapper,optimizer,exact_total_hartree,vqe_total_hartree,abs_error_hartree,iterations,elapsed_s
+0.735,uccsd,jordan_wigner,slsqp,-1.1373060358,-1.1373059741,6.1667337903e-08,65,3.2697
+0.735,uccsd,jordan_wigner,cobyla,-1.1373060358,-1.1373060106,2.5149367033e-08,66,3.3555
+0.735,uccsd,parity,slsqp,-1.1373060358,-1.1373060018,3.3914693276e-08,33,1.6211
+0.735,uccsd,parity,cobyla,-1.1373060358,-1.1373060180,1.7790600992e-08,57,2.8289
+0.735,uccsd,bravyi_kitaev,slsqp,-1.1373060358,-1.1373060306,5.1865898243e-09,29,1.4629
+0.735,uccsd,bravyi_kitaev,cobyla,-1.1373060358,-1.1373060324,3.3283704681e-09,57,2.8647
