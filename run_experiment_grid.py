@@ -11,12 +11,13 @@ from qiskit_algorithms.optimizers import SLSQP, COBYLA
 from qiskit_nature.units import DistanceUnit
 from qiskit_nature.second_q.drivers import PySCFDriver
 from qiskit_nature.second_q.mappers import JordanWignerMapper, ParityMapper, BravyiKitaevMapper
-from qiskit_nature.second_q.circuit.library import HartreeFock, UCCSD
+from qiskit_nature.second_q.circuit.library import HartreeFock, UCCSD, UCC, PUCCSD, PUCCD
 
 
 FIXED_DISTANCE = 0.735
 DISTANCE_SWEEP_APPENDIX = [0.50, 0.735, 1.00, 1.50]
-ANSATZ_NAME = "uccsd"
+ANSATZ_LIST = ["uccsd", "puccsd", "puccd"]
+ANSATZ_APPENDIX = "uccsd"
 
 
 @dataclass
@@ -60,21 +61,31 @@ def build_optimizer(name: str):
     raise ValueError(f"Unknown optimizer: {name}")
 
 
-def build_ansatz(problem, mapper):
+def build_ansatz(problem, mapper, ansatz_name: str):
     hf = HartreeFock(
         problem.num_spatial_orbitals,
         problem.num_particles,
         mapper,
     )
-    return UCCSD(
+    ansatz_kwargs = dict(
         num_spatial_orbitals=problem.num_spatial_orbitals,
         num_particles=problem.num_particles,
         qubit_mapper=mapper,
         initial_state=hf,
     )
+    name = ansatz_name.lower().strip()
+    if name == "uccsd":
+        return UCCSD(**ansatz_kwargs)
+    if name == "ucc":
+        return UCC(**ansatz_kwargs)
+    if name == "puccsd":
+        return PUCCSD(**ansatz_kwargs)
+    if name == "puccd":
+        return PUCCD(**ansatz_kwargs)
+    raise ValueError("ansatz must be one of: 'uccsd', 'ucc', 'puccsd', 'puccd'")
 
 
-def run_single(distance: float, mapper_name: str, optimizer_name: str) -> RunResult:
+def run_single(distance: float, mapper_name: str, optimizer_name: str, ansatz_name: str) -> RunResult:
     mapper = build_mapper(mapper_name)
     problem = build_problem(distance)
 
@@ -85,7 +96,7 @@ def run_single(distance: float, mapper_name: str, optimizer_name: str) -> RunRes
     exact = NumPyMinimumEigensolver().compute_minimum_eigenvalue(qubit_op)
     exact_total = float(np.real(exact.eigenvalue)) + e_nuc
 
-    ansatz = build_ansatz(problem, mapper)
+    ansatz = build_ansatz(problem, mapper, ansatz_name)
     optimizer = build_optimizer(optimizer_name)
 
     history = []
@@ -124,23 +135,25 @@ def run_fixed_grid():
     optimizers = ["slsqp", "cobyla"]
 
     results = []
-    total = len(mappers) * len(optimizers)
+    total = len(ANSATZ_LIST) * len(mappers) * len(optimizers)
     idx = 0
 
-    for mapper in mappers:
-        for optimizer in optimizers:
-            idx += 1
-            print(
-                f"[fixed {idx}/{total}] distance={FIXED_DISTANCE:.3f} mapper={mapper} optimizer={optimizer}",
-                flush=True,
-            )
-            r = run_single(FIXED_DISTANCE, mapper, optimizer)
-            results.append(r)
-            print(
-                f"  -> vqe={r.vqe_total:.8f} exact={r.exact_total:.8f} "
-                f"abs_error={r.abs_error:.2e} iters={r.iterations} t={r.elapsed_s:.2f}s",
-                flush=True,
-            )
+    for ansatz in ANSATZ_LIST:
+        for mapper in mappers:
+            for optimizer in optimizers:
+                idx += 1
+                print(
+                    f"[fixed {idx}/{total}] distance={FIXED_DISTANCE:.3f} ansatz={ansatz} "
+                    f"mapper={mapper} optimizer={optimizer}",
+                    flush=True,
+                )
+                r = run_single(FIXED_DISTANCE, mapper, optimizer, ansatz)
+                results.append((ansatz, r))
+                print(
+                    f"  -> vqe={r.vqe_total:.8f} exact={r.exact_total:.8f} "
+                    f"abs_error={r.abs_error:.2e} iters={r.iterations} t={r.elapsed_s:.2f}s",
+                    flush=True,
+                )
 
     with open("fixed_point_results.csv", "w", newline="") as f:
         w = csv.writer(f)
@@ -155,10 +168,10 @@ def run_fixed_grid():
             "iterations",
             "elapsed_s",
         ])
-        for r in results:
+        for ansatz, r in results:
             w.writerow([
                 f"{r.distance:.3f}",
-                ANSATZ_NAME,
+                ansatz,
                 r.mapper,
                 r.optimizer,
                 f"{r.exact_total:.10f}",
@@ -174,16 +187,17 @@ def run_fixed_grid():
 def run_appendix_sweep():
     mapper = "jordan_wigner"
     optimizer = "slsqp"
+    ansatz = ANSATZ_APPENDIX
 
     results = []
     total = len(DISTANCE_SWEEP_APPENDIX)
 
     for i, distance in enumerate(DISTANCE_SWEEP_APPENDIX, start=1):
         print(
-            f"[appendix {i}/{total}] distance={distance:.3f} mapper={mapper} optimizer={optimizer}",
+            f"[appendix {i}/{total}] distance={distance:.3f} ansatz={ansatz} mapper={mapper} optimizer={optimizer}",
             flush=True,
         )
-        r = run_single(distance, mapper, optimizer)
+        r = run_single(distance, mapper, optimizer, ansatz)
         results.append(r)
         print(
             f"  -> vqe={r.vqe_total:.8f} exact={r.exact_total:.8f} "
@@ -207,7 +221,7 @@ def run_appendix_sweep():
         for r in results:
             w.writerow([
                 f"{r.distance:.3f}",
-                ANSATZ_NAME,
+                ansatz,
                 r.mapper,
                 r.optimizer,
                 f"{r.exact_total:.10f}",
@@ -221,7 +235,10 @@ def run_appendix_sweep():
 
 
 def main():
-    print(f"Running fixed-point benchmark at {FIXED_DISTANCE:.3f} Angstrom with ansatz={ANSATZ_NAME}")
+    print(
+        f"Running fixed-point benchmark at {FIXED_DISTANCE:.3f} Angstrom "
+        f"with ansatz={', '.join(ANSATZ_LIST)}"
+    )
     run_fixed_grid()
     print("\nRunning supplementary distance sweep for appendix")
     run_appendix_sweep()

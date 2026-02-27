@@ -1,5 +1,5 @@
 distance_A,ansatz,mapper,optimizer,exact_total_hartree,vqe_total_hartree,abs_error_hartree,iterations,elapsed_s
-0.500,uccsd,jordan_wigner,slsqp,-1.0551597945,-1.0551597923,2.1322072996e-09,65,3.1937
-0.735,uccsd,jordan_wigner,slsqp,-1.1373060358,-1.1373059339,1.0183905541e-07,37,1.8776
-1.000,uccsd,jordan_wigner,slsqp,-1.1011503302,-1.1011501953,1.3492005158e-07,65,3.1923
-1.500,uccsd,jordan_wigner,slsqp,-0.9981493535,-0.9981488900,4.6346488380e-07,45,2.2945
+0.500,uccsd,jordan_wigner,slsqp,-1.0551597945,-1.0551596160,1.7848062006e-07,73,3.4893
+0.735,uccsd,jordan_wigner,slsqp,-1.1373060358,-1.1373057096,3.2613169765e-07,38,1.9287
+1.000,uccsd,jordan_wigner,slsqp,-1.1011503302,-1.1011502401,9.0165280575e-08,28,1.3051
+1.500,uccsd,jordan_wigner,slsqp,-0.9981493535,-0.9981493363,1.7179985434e-08,37,1.7685
